@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: redrock-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-redrock_dashboard}
+      POSTGRES_USER: ${DB_USER:-redrock}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-redrock}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: redrock-server
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-redrock_dashboard}
+      - DB_USER=${DB_USER:-redrock}
+      - DB_PASSWORD=${DB_PASSWORD:-change_me_in_production}
+      - JWT_SECRET=${JWT_SECRET:-change_this_to_a_random_secret_key}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
+      - NODE_ENV=${NODE_ENV:-production}
+      - SERVER_PORT=5000
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      - WEATHER_DEFAULT_LOCATION=${WEATHER_DEFAULT_LOCATION:-Las Vegas,NV,US}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+      - RENTVINE_API_URL=${RENTVINE_API_URL:-}
+      - RENTVINE_API_KEY=${RENTVINE_API_KEY:-}
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: redrock-client
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:5000/api}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
+  nginx:
+    image: nginx:alpine
+    container_name: redrock-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - client
+      - server
+
+volumes:
+  postgres_data:

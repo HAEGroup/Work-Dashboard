@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f5f5f5;
+  color: #2D3436;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Calendar overrides */
+.rbc-calendar {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.rbc-event {
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* Quill editor overrides */
+.ql-container {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.ql-editor {
+  min-height: 150px;
+}
