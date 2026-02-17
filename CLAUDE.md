@@ -4,7 +4,7 @@ This file provides context and conventions for AI assistants working on this rep
 
 ## Project Overview
 
-**Work-Dashboard** is a dashboard application. This repository is in its initial setup phase.
+**Work-Dashboard** is a dashboard application. The repository is currently in its **initial setup phase** — no application code, dependencies, or build tooling have been added yet. The only file present (besides `.git/`) is this `CLAUDE.md`.
 
 ## Repository Structure
 
@@ -14,78 +14,47 @@ Work-Dashboard/
 └── .git/              # Git repository metadata
 ```
 
-> **Note:** This project is newly initialized. Update this section as directories and files are added.
-
-### Expected Structure (update as project evolves)
-
-As the project grows, document new directories here:
-
-<!-- Example (uncomment and modify as applicable):
-├── src/               # Application source code
-│   ├── components/    # Reusable UI components
-│   ├── pages/         # Page-level components / routes
-│   ├── services/      # API clients and external service integrations
-│   ├── utils/         # Shared utility functions
-│   ├── hooks/         # Custom React hooks (if React)
-│   ├── store/         # State management
-│   └── styles/        # Global styles and theme
-├── public/            # Static assets
-├── tests/             # Test files
-├── .github/           # CI/CD workflows
-└── docs/              # Documentation
--->
+This project has no source code, configuration files, or dependencies yet. When adding the initial project scaffolding, update this section to reflect the chosen structure.
 
 ## Tech Stack
 
-> **Note:** Update this section once the tech stack is chosen and dependencies are installed.
+No tech stack has been chosen yet. When initializing the project, update these entries:
 
-- **Framework:** TBD
-- **Language:** TBD
-- **Build Tool:** TBD
-- **Package Manager:** TBD
-- **Testing:** TBD
-- **Linting/Formatting:** TBD
-- **Styling:** TBD
+- **Framework:** Not yet chosen
+- **Language:** Not yet chosen
+- **Build Tool:** Not yet chosen
+- **Package Manager:** Not yet chosen
+- **Testing:** Not yet chosen
+- **Linting/Formatting:** Not yet chosen
+- **Styling:** Not yet chosen
 
 ## Development Setup
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd Work-Dashboard
+No dependencies or build steps exist yet. Once the project is scaffolded:
 
-# Install dependencies (update command based on package manager)
-# npm install
-# yarn install
-# pnpm install
-```
+1. Document the install command (e.g., `npm install`)
+2. Document how to start the dev server
+3. Document any required environment variables
 
 ## Common Commands
 
-> **Note:** Update this section once package.json scripts are defined.
+No scripts are defined yet. Update this section when `package.json` (or equivalent) is created.
 
 ```bash
-# Development server
-# npm run dev
-
-# Build for production
-# npm run build
-
-# Run tests
-# npm test
-
-# Lint code
-# npm run lint
-
-# Format code
-# npm run format
+# Placeholder — replace once scripts exist:
+# npm run dev       # Start development server
+# npm run build     # Production build
+# npm test          # Run tests
+# npm run lint      # Lint code
+# npm run format    # Format code
 ```
 
 ## Git Workflow
 
-- **Default branch:** `main` (or update if different)
+- **Default branch:** `master`
+- **Remote:** `origin` points to `HAEGroup/Work-Dashboard`
 - Use descriptive commit messages in imperative mood (e.g., "Add user authentication")
-- Feature branches should follow the pattern: `feature/<description>` or `claude/<session-id>`
+- Feature branches follow the pattern: `feature/<description>` or `claude/<session-id>`
 - Keep commits focused and atomic — one logical change per commit
 
 ## Code Conventions
@@ -100,15 +69,12 @@ cd Work-Dashboard
 
 ### File Naming
 
-> **Note:** Establish and document naming conventions here once the project structure is in place.
+Establish and document naming conventions here once the project structure is in place. Suggested defaults:
 
-<!-- Example conventions (uncomment and modify):
 - Components: PascalCase (e.g., `UserProfile.tsx`)
-- Utilities: camelCase (e.g., `formatDate.ts`)
-- Constants: SCREAMING_SNAKE_CASE for values, camelCase for files
-- Test files: `<filename>.test.ts` or `<filename>.spec.ts`
-- Style files: match component name (e.g., `UserProfile.module.css`)
--->
+- Utilities/modules: camelCase (e.g., `formatDate.ts`)
+- Constants: SCREAMING_SNAKE_CASE for exported constant values
+- Test files: `<filename>.test.<ext>` or `<filename>.spec.<ext>`
 
 ### Imports
 
@@ -117,7 +83,7 @@ cd Work-Dashboard
 
 ## Testing Guidelines
 
-> **Note:** Update once testing framework is configured.
+No testing framework is configured yet. When one is added:
 
 - Write tests for business logic and critical paths
 - Place test files adjacent to the code they test, or in a dedicated `tests/` directory
@@ -126,15 +92,9 @@ cd Work-Dashboard
 
 ## Environment Variables
 
-> **Note:** Document required environment variables here as they are introduced.
+No environment variables are required yet. When they are introduced:
 
-<!-- Example:
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `API_URL` | Backend API base URL | Yes | — |
-| `NODE_ENV` | Environment mode | No | `development` |
--->
-
+- Document each variable, its purpose, whether it's required, and its default value
 - Never commit secrets or credentials to the repository
 - Use `.env.example` to document required variables (without actual values)
 
@@ -146,7 +106,8 @@ When working on this codebase:
 2. **Follow existing patterns** — Match the style and conventions already present in the code
 3. **Minimal changes** — Only modify what is necessary to accomplish the task
 4. **No over-engineering** — Avoid adding features, abstractions, or error handling beyond what is requested
-5. **Update this file** — When introducing new conventions, dependencies, or structural changes, update CLAUDE.md accordingly
+5. **Update this file** — When introducing new conventions, dependencies, or structural changes, update this CLAUDE.md accordingly
 6. **Test your changes** — Run the test suite after making changes (once tests exist)
 7. **Check the build** — Verify the project builds successfully after changes
 8. **Security first** — Never introduce secrets, credentials, or known vulnerabilities
+9. **Scaffold thoughtfully** — Since this repo is empty, the first major task will be choosing a tech stack and scaffolding the project. Document all choices in this file as they are made
