@@ -36,6 +36,7 @@ model User {
   journalEntries      JournalEntry[]
   auditLogs           AuditLog[]
   passwordResetTokens PasswordResetToken[]
+  crmActivities       CrmActivity[]
 
   @@map("users")
 }
@@ -518,4 +519,112 @@ model RentvineTransaction {
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@map("rentvine_transactions")
+}
+
+// ============================================================
+// CRM (Monday.com-style boards)
+// ============================================================
+
+enum CrmColumnType {
+  TEXT
+  NUMBER
+  STATUS
+  DATE
+  PERSON
+  EMAIL
+  PHONE
+  LINK
+  DROPDOWN
+  CHECKBOX
+  RATING
+}
+
+model CrmBoard {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  color       String  @default("#3b82f6")
+  icon        String  @default("layout-grid")
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  groups  CrmGroup[]
+  columns CrmColumn[]
+
+  @@map("crm_boards")
+}
+
+model CrmColumn {
+  id       String        @id @default(uuid())
+  boardId  String        @map("board_id")
+  name     String
+  type     CrmColumnType
+  config   Json?
+  width    Int           @default(150)
+  position Int           @default(0)
+
+  board      CrmBoard       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cellValues CrmCellValue[]
+
+  @@map("crm_columns")
+}
+
+model CrmGroup {
+  id        String  @id @default(uuid())
+  boardId   String  @map("board_id")
+  name      String
+  color     String  @default("#3b82f6")
+  position  Int     @default(0)
+  collapsed Boolean @default(false)
+
+  board CrmBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  items CrmItem[]
+
+  @@map("crm_groups")
+}
+
+model CrmItem {
+  id        String   @id @default(uuid())
+  groupId   String   @map("group_id")
+  name      String
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  group      CrmGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  cellValues CrmCellValue[]
+  activities CrmActivity[]
+
+  @@map("crm_items")
+}
+
+model CrmCellValue {
+  id       String @id @default(uuid())
+  itemId   String @map("item_id")
+  columnId String @map("column_id")
+  value    Json
+
+  item   CrmItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  column CrmColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, columnId])
+  @@map("crm_cell_values")
+}
+
+model CrmActivity {
+  id       String   @id @default(uuid())
+  itemId   String   @map("item_id")
+  userId   String   @map("user_id")
+  type     String
+  content  String
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  item CrmItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User    @relation(fields: [userId], references: [id])
+
+  @@index([itemId])
+  @@map("crm_activities")
 }

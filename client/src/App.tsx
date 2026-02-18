@@ -12,6 +12,7 @@ import AccountingPage from './pages/AccountingPage';
 import TasksPage from './pages/TasksPage';
 import PropertiesPage from './pages/PropertiesPage';
 import SettingsPage from './pages/SettingsPage';
+import CrmPage from './pages/CrmPage';
 import LoadingSpinner from './components/shared/LoadingSpinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/accounting" element={<AccountingPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/crm" element={<CrmPage />} />
           <Route path="/properties" element={<PropertiesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

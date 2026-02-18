@@ -36,6 +36,7 @@ Work-Dashboard/
 │           ├── email/     # IMAP/SMTP email client
 │           ├── calendar/  # Events + Google Calendar sync
 │           ├── tasks/     # Projects, tasks, time tracking
+│           ├── crm/       # Monday.com-style CRM boards
 │           ├── rentvine/  # Rentvine API integration
 │           └── dashboard/ # Aggregated dashboard data
 ├── client/                # Frontend (React + TypeScript)

@@ -250,6 +250,71 @@ export interface DashboardData {
 }
 
 // ============================================================
+// CRM
+// ============================================================
+
+export type CrmColumnType = 'TEXT' | 'NUMBER' | 'STATUS' | 'DATE' | 'PERSON' | 'EMAIL' | 'PHONE' | 'LINK' | 'DROPDOWN' | 'CHECKBOX' | 'RATING';
+
+export interface CrmBoard {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon: string;
+  position: number;
+  columns: CrmColumn[];
+  groups: CrmGroup[];
+  _count?: { groups: number; columns: number };
+}
+
+export interface CrmColumn {
+  id: string;
+  boardId: string;
+  name: string;
+  type: CrmColumnType;
+  config?: any;
+  width: number;
+  position: number;
+}
+
+export interface CrmGroup {
+  id: string;
+  boardId: string;
+  name: string;
+  color: string;
+  position: number;
+  collapsed: boolean;
+  items: CrmItem[];
+}
+
+export interface CrmItem {
+  id: string;
+  groupId: string;
+  name: string;
+  position: number;
+  cellValues: CrmCellValue[];
+  createdAt?: string;
+}
+
+export interface CrmCellValue {
+  id: string;
+  itemId: string;
+  columnId: string;
+  value: any;
+}
+
+export interface CrmActivity {
+  id: string;
+  itemId: string;
+  userId: string;
+  type: string;
+  content: string;
+  metadata?: any;
+  createdAt: string;
+  user?: { id: string; firstName: string; lastName: string };
+}
+
+// ============================================================
 // COMMON
 // ============================================================
 
