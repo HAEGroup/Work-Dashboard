@@ -35,6 +35,7 @@ interface Message {
 interface ChatStatus {
   configured: boolean;
   connected: boolean;
+  googleEmail: string | null;
 }
 
 export default function ChatPage() {
@@ -89,7 +90,7 @@ export default function ChatPage() {
   async function disconnectGoogle() {
     try {
       await api.post('/chat/google/disconnect');
-      setStatus({ configured: true, connected: false });
+      setStatus({ configured: true, connected: false, googleEmail: null });
       setSpaces([]);
       setActiveSpace(null);
       setMessages([]);
@@ -238,9 +239,9 @@ export default function ChatPage() {
         )}
         <div className="flex flex-col items-center justify-center h-64">
           <MessageCircle className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Connect Google Chat</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Connect Your Google Chat</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center max-w-md">
-            Connect your Google Workspace account to view and send messages in Google Chat spaces directly from your dashboard.
+            Each user connects their own Google Workspace account. Sign in with your Google account to view and send messages in your Chat spaces.
           </p>
           <button onClick={connectGoogle} className="btn-primary">
             <MessageCircle className="h-4 w-4 mr-2" /> Connect Google Chat
@@ -257,10 +258,15 @@ export default function ChatPage() {
         title="Chat"
         actions={
           <div className="flex items-center gap-2">
+            {status?.googleEmail && (
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                {status.googleEmail}
+              </span>
+            )}
             <button onClick={loadSpaces} className="btn-ghost btn-sm" title="Refresh spaces">
               <RefreshCw className="h-4 w-4" />
             </button>
-            <button onClick={disconnectGoogle} className="btn-ghost btn-sm text-red-500" title="Disconnect">
+            <button onClick={disconnectGoogle} className="btn-ghost btn-sm text-red-500" title="Disconnect Google Chat">
               <LogOut className="h-4 w-4" />
             </button>
           </div>

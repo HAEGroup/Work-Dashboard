@@ -23,6 +23,7 @@ export function getGoogleChatAuthUrl(userId: string): string {
       'https://www.googleapis.com/auth/chat.messages',
       'https://www.googleapis.com/auth/chat.messages.create',
       'https://www.googleapis.com/auth/chat.memberships.readonly',
+      'https://www.googleapis.com/auth/userinfo.email',
     ],
     prompt: 'consent',
     state: userId,
@@ -33,10 +34,22 @@ export async function handleGoogleChatCallback(userId: string, code: string): Pr
   const oauth2Client = createOAuth2Client();
   const { tokens } = await oauth2Client.getToken(code);
 
+  // Fetch the connected Google account email
+  let googleEmail: string | null = null;
+  try {
+    oauth2Client.setCredentials(tokens);
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const userInfo = await oauth2.userinfo.get();
+    googleEmail = userInfo.data.email || null;
+  } catch {
+    // Non-critical — continue without email
+  }
+
   await prisma.googleChatSync.upsert({
     where: { userId },
     create: {
       userId,
+      googleEmail,
       accessToken: tokens.access_token!,
       refreshToken: tokens.refresh_token!,
       tokenExpiry: new Date(tokens.expiry_date!),
@@ -44,6 +57,7 @@ export async function handleGoogleChatCallback(userId: string, code: string): Pr
     update: {
       accessToken: tokens.access_token!,
       ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
+      ...(googleEmail ? { googleEmail } : {}),
       tokenExpiry: new Date(tokens.expiry_date!),
     },
   });

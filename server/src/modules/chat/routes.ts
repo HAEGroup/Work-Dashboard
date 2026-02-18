@@ -40,7 +40,11 @@ router.get('/google/status', authenticate, async (req: Request, res: Response) =
   const sync = await prisma.googleChatSync.findUnique({
     where: { userId: req.user!.id },
   });
-  res.json({ configured, connected: !!sync });
+  res.json({
+    configured,
+    connected: !!sync,
+    googleEmail: sync?.googleEmail || null,
+  });
 });
 
 // POST /api/chat/google/disconnect

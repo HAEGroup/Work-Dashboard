@@ -37,6 +37,7 @@ model User {
   auditLogs           AuditLog[]
   passwordResetTokens PasswordResetToken[]
   crmActivities       CrmActivity[]
+  googleChatSync      GoogleChatSync?
 
   @@map("users")
 }
@@ -201,9 +202,12 @@ model GoogleCalendarSync {
 model GoogleChatSync {
   id            String   @id @default(uuid())
   userId        String   @unique @map("user_id")
+  googleEmail   String?  @map("google_email")
   accessToken   String   @map("access_token")
   refreshToken  String   @map("refresh_token")
   tokenExpiry   DateTime @map("token_expiry")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
