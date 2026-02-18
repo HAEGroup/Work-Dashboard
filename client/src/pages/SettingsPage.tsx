@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Shield, Key, Building2, Plus, X, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, Key, Building2, Plus, X, Lock, Eye, EyeOff, Link2, Copy, Check } from 'lucide-react';
 import api from '../services/api';
 import { useAuthStore } from '../store/auth';
 import type { User as UserType } from '../types';
@@ -30,6 +30,12 @@ export default function SettingsPage() {
   const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
   const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+
+  // Generate reset link modal
+  const [resetLinkUserId, setResetLinkUserId] = useState<string | null>(null);
+  const [resetLinkUrl, setResetLinkUrl] = useState('');
+  const [resetLinkLoading, setResetLinkLoading] = useState(false);
+  const [resetLinkCopied, setResetLinkCopied] = useState(false);
 
   // Change own password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -169,7 +175,30 @@ export default function SettingsPage() {
     setShowResetPassword(true);
   }
 
+  async function generateResetLink(userId: string) {
+    setResetLinkUserId(userId);
+    setResetLinkUrl('');
+    setResetLinkCopied(false);
+    setResetLinkLoading(true);
+    try {
+      const { data } = await api.post(`/auth/users/${userId}/generate-reset-link`);
+      const url = `${window.location.origin}/reset-password?token=${data.token}`;
+      setResetLinkUrl(url);
+    } catch (err) {
+      console.error('Failed to generate reset link:', err);
+    } finally {
+      setResetLinkLoading(false);
+    }
+  }
+
+  function copyResetLink() {
+    navigator.clipboard.writeText(resetLinkUrl);
+    setResetLinkCopied(true);
+    setTimeout(() => setResetLinkCopied(false), 2000);
+  }
+
   const resetUser = users.find(u => u.id === resetPasswordUserId);
+  const resetLinkUser = users.find(u => u.id === resetLinkUserId);
 
   return (
     <div>
@@ -199,32 +228,32 @@ export default function SettingsPage() {
           {tab === 'profile' && (
             <div className="space-y-6">
               <div className="card">
-                <div className="card-header"><h3 className="font-semibold">Profile</h3></div>
+                <div className="card-header"><h3 className="font-semibold dark:text-white">Profile</h3></div>
                 <div className="card-body space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="label">First Name</label>
-                      <p className="text-sm text-gray-900">{user?.firstName}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{user?.firstName}</p>
                     </div>
                     <div>
                       <label className="label">Last Name</label>
-                      <p className="text-sm text-gray-900">{user?.lastName}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{user?.lastName}</p>
                     </div>
                   </div>
                   <div>
                     <label className="label">Email</label>
-                    <p className="text-sm text-gray-900">{user?.email}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{user?.email}</p>
                   </div>
                   <div>
                     <label className="label">Role</label>
-                    <p className="text-sm text-gray-900">{user?.role}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{user?.role}</p>
                   </div>
                 </div>
               </div>
 
               {/* Change Password */}
               <div className="card">
-                <div className="card-header"><h3 className="font-semibold">Change Password</h3></div>
+                <div className="card-header"><h3 className="font-semibold dark:text-white">Change Password</h3></div>
                 <div className="card-body">
                   <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
                     <div>
@@ -297,7 +326,7 @@ export default function SettingsPage() {
           {tab === 'users' && user?.role === 'ADMIN' && (
             <div className="card">
               <div className="card-header flex items-center justify-between">
-                <h3 className="font-semibold">Team Members</h3>
+                <h3 className="font-semibold dark:text-white">Team Members</h3>
                 <button onClick={() => setShowAddUser(true)} className="btn-primary btn-sm">
                   <Plus className="h-3.5 w-3.5 mr-1.5" /> Add User
                 </button>
@@ -338,6 +367,13 @@ export default function SettingsPage() {
                             >
                               <Key className="h-3.5 w-3.5" />
                             </button>
+                            <button
+                              onClick={() => generateResetLink(u.id)}
+                              className="btn-ghost btn-sm"
+                              title="Generate reset link"
+                            >
+                              <Link2 className="h-3.5 w-3.5" />
+                            </button>
                             {u.id !== user.id && (
                               <button
                                 onClick={() => toggleUserActive(u.id, u.isActive!)}
@@ -364,8 +400,8 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <Key className="h-5 w-5 text-green-600" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Rentvine Connected</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Rentvine Connected</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Base URL: {rentvineConfig.baseUrl}
                         {rentvineConfig.lastSyncAt && ` | Last sync: ${new Date(rentvineConfig.lastSyncAt).toLocaleString()}`}
                       </p>
@@ -376,7 +412,7 @@ export default function SettingsPage() {
 
               <div className="card">
                 <div className="card-header">
-                  <h3 className="font-semibold">{rentvineConfig ? 'Update' : 'Configure'} Rentvine API</h3>
+                  <h3 className="font-semibold dark:text-white">{rentvineConfig ? 'Update' : 'Configure'} Rentvine API</h3>
                 </div>
                 <div className="card-body">
                   <form onSubmit={saveRentvineConfig} className="space-y-3">
@@ -406,10 +442,10 @@ export default function SettingsPage() {
       {/* ====== ADD USER MODAL ====== */}
       {showAddUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold">Add User</h2>
-              <button onClick={() => setShowAddUser(false)} className="p-1 rounded-lg hover:bg-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+              <h2 className="text-lg font-semibold dark:text-white">Add User</h2>
+              <button onClick={() => setShowAddUser(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                 <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
@@ -484,19 +520,63 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* ====== GENERATE RESET LINK MODAL ====== */}
+      {resetLinkUserId && resetLinkUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+              <h2 className="text-lg font-semibold dark:text-white">Password Reset Link</h2>
+              <button onClick={() => setResetLinkUserId(null)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Reset link for <span className="font-medium text-gray-900 dark:text-white">{resetLinkUser.firstName} {resetLinkUser.lastName}</span> ({resetLinkUser.email})
+              </p>
+              {resetLinkLoading ? (
+                <p className="text-sm text-gray-500">Generating link...</p>
+              ) : resetLinkUrl ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="input text-xs font-mono"
+                      value={resetLinkUrl}
+                      readOnly
+                      onClick={e => (e.target as HTMLInputElement).select()}
+                    />
+                    <button onClick={copyResetLink} className="btn-secondary btn-sm whitespace-nowrap">
+                      {resetLinkCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    This link expires in 24 hours. Share it with the user so they can set a new password.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-red-600">Failed to generate reset link</p>
+              )}
+              <div className="flex justify-end pt-2">
+                <button onClick={() => setResetLinkUserId(null)} className="btn-secondary">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ====== RESET PASSWORD MODAL ====== */}
       {showResetPassword && resetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold">Reset Password</h2>
-              <button onClick={() => { setShowResetPassword(false); setResetPasswordUserId(null); }} className="p-1 rounded-lg hover:bg-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+              <h2 className="text-lg font-semibold dark:text-white">Reset Password</h2>
+              <button onClick={() => { setShowResetPassword(false); setResetPasswordUserId(null); }} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                 <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleResetPassword} className="p-6 space-y-4">
-              <p className="text-sm text-gray-600">
-                Set a new password for <span className="font-medium text-gray-900">{resetUser.firstName} {resetUser.lastName}</span> ({resetUser.email})
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Set a new password for <span className="font-medium text-gray-900 dark:text-white">{resetUser.firstName} {resetUser.lastName}</span> ({resetUser.email})
               </p>
               <div>
                 <label className="label">New Password</label>

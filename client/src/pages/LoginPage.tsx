@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotMsg, setShowForgotMsg] = useState(false);
   const { login, register } = useAuthStore();
   const navigate = useNavigate();
 
@@ -35,14 +36,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-600">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">Work Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Work Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {isRegister ? 'Create your account' : 'Sign in to your account'}
           </p>
         </div>
@@ -51,7 +52,7 @@ export default function LoginPage() {
           <div className="card-body">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+                <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
               )}
 
               {isRegister && (
@@ -104,6 +105,24 @@ export default function LoginPage() {
                 />
               </div>
 
+              {!isRegister && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotMsg(!showForgotMsg)}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {showForgotMsg && !isRegister && (
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-700 dark:text-blue-300">
+                  Please contact your administrator to get a password reset link.
+                </div>
+              )}
+
               <button type="submit" className="btn-primary w-full" disabled={loading}>
                 {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
               </button>
@@ -111,10 +130,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
           {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
-            onClick={() => { setIsRegister(!isRegister); setError(''); }}
+            onClick={() => { setIsRegister(!isRegister); setError(''); setShowForgotMsg(false); }}
             className="font-medium text-primary-600 hover:text-primary-700"
           >
             {isRegister ? 'Sign in' : 'Create one'}

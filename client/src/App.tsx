@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth';
+import { useThemeStore } from './store/theme';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import EmailPage from './pages/EmailPage';
 import CalendarPage from './pages/CalendarPage';
@@ -23,8 +25,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { loadUser, token } = useAuthStore();
+  const initTheme = useThemeStore(s => s.init);
 
   useEffect(() => {
+    initTheme();
     loadUser();
   }, []);
 
@@ -32,6 +36,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route
           element={

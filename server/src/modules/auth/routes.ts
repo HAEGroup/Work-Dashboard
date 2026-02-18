@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { z } from 'zod';
@@ -202,6 +203,54 @@ router.post('/change-password', authenticate, async (req: Request, res: Response
   });
 
   res.json({ message: 'Password changed successfully' });
+});
+
+// POST /api/auth/users/:id/generate-reset-link (admin only)
+router.post('/users/:id/generate-reset-link', authenticate, authorize('ADMIN'), async (req: Request, res: Response) => {
+  const targetUser = await prisma.user.findUnique({ where: { id: req.params.id as string } });
+  if (!targetUser) throw new AppError(404, 'User not found');
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  await prisma.passwordResetToken.create({
+    data: { userId: targetUser.id, token, expiresAt },
+  });
+
+  res.json({ token, expiresAt: expiresAt.toISOString() });
+});
+
+// POST /api/auth/reset-password-with-token (public)
+router.post('/reset-password-with-token', async (req: Request, res: Response) => {
+  const schema = z.object({
+    token: z.string().min(1),
+    password: z.string().min(8),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) throw new AppError(400, 'Invalid request data');
+
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { token: parsed.data.token },
+  });
+
+  if (!resetToken) throw new AppError(400, 'Invalid or expired reset link');
+  if (resetToken.usedAt) throw new AppError(400, 'This reset link has already been used');
+  if (resetToken.expiresAt < new Date()) throw new AppError(400, 'This reset link has expired');
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { passwordHash },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { usedAt: new Date() },
+    }),
+  ]);
+
+  res.json({ message: 'Password reset successfully' });
 });
 
 export default router;

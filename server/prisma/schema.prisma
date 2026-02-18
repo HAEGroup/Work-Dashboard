@@ -29,14 +29,29 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  emailAccounts   EmailAccount[]
-  calendarEvents  CalendarEvent[]
-  taskAssignments TaskAssignment[]
-  timeEntries     TimeEntry[]
-  journalEntries  JournalEntry[]
-  auditLogs       AuditLog[]
+  emailAccounts       EmailAccount[]
+  calendarEvents      CalendarEvent[]
+  taskAssignments     TaskAssignment[]
+  timeEntries         TimeEntry[]
+  journalEntries      JournalEntry[]
+  auditLogs           AuditLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@map("password_reset_tokens")
 }
 
 model AuditLog {
