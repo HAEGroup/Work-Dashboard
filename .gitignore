@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Database
+pgdata/
+
+# SSL certs
+nginx/ssl/*.pem
+nginx/ssl/*.key
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
