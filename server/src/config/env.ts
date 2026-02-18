@@ -22,6 +22,13 @@ export const env = {
   RENTVINE_API_SECRET: process.env.RENTVINE_API_SECRET || '',
   RENTVINE_BASE_URL: process.env.RENTVINE_BASE_URL || 'https://api.rentvine.com',
 
+  // System SMTP (for password reset emails)
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_FROM: process.env.SMTP_FROM || '',
+
   // Frontend URL (for CORS)
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
 };

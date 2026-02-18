@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { User, Shield, Key, Building2, Plus, X, Lock, Eye, EyeOff, Link2, Copy, Check } from 'lucide-react';
+import { User, Shield, Key, Building2, Plus, X, Lock, Eye, EyeOff, Link2, Copy, Check, Mail } from 'lucide-react';
 import api from '../services/api';
 import { useAuthStore } from '../store/auth';
 import type { User as UserType } from '../types';
 import PageHeader from '../components/shared/PageHeader';
 
-type Tab = 'profile' | 'users' | 'rentvine';
+type Tab = 'profile' | 'users' | 'smtp' | 'rentvine';
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -16,6 +16,13 @@ export default function SettingsPage() {
   // Rentvine form
   const [rvForm, setRvForm] = useState({ apiKey: '', apiSecret: '', baseUrl: 'https://api.rentvine.com' });
   const [rvSaving, setRvSaving] = useState(false);
+
+  // SMTP config
+  const [smtpConfig, setSmtpConfig] = useState<{ host: string; port: number; username: string; fromEmail: string; source?: string } | null>(null);
+  const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, username: '', password: '', fromEmail: '' });
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Add user modal
   const [showAddUser, setShowAddUser] = useState(false);
@@ -49,6 +56,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (tab === 'users' && user?.role === 'ADMIN') loadUsers();
+    if (tab === 'smtp' && user?.role === 'ADMIN') loadSmtpConfig();
     if (tab === 'rentvine' && user?.role === 'ADMIN') loadRentvineConfig();
   }, [tab]);
 
@@ -58,6 +66,46 @@ export default function SettingsPage() {
       setUsers(data.users);
     } catch (err) {
       console.error('Failed to load users:', err);
+    }
+  }
+
+  async function loadSmtpConfig() {
+    try {
+      const { data } = await api.get('/auth/smtp-config');
+      setSmtpConfig(data.config);
+    } catch (err) {
+      console.error('Failed to load SMTP config:', err);
+    }
+  }
+
+  async function saveSmtpConfig(e: React.FormEvent) {
+    e.preventDefault();
+    setSmtpSaving(true);
+    setSmtpTestResult(null);
+    try {
+      const { data } = await api.post('/auth/smtp-config', {
+        ...smtpForm,
+        port: Number(smtpForm.port),
+      });
+      setSmtpConfig(data.config);
+      setSmtpForm({ host: '', port: 587, username: '', password: '', fromEmail: '' });
+    } catch (err) {
+      console.error('Failed to save SMTP config:', err);
+    } finally {
+      setSmtpSaving(false);
+    }
+  }
+
+  async function testSmtpConnection() {
+    setSmtpTesting(true);
+    setSmtpTestResult(null);
+    try {
+      const { data } = await api.post('/auth/smtp-config/test');
+      setSmtpTestResult({ ok: true, message: data.message });
+    } catch (err: any) {
+      setSmtpTestResult({ ok: false, message: err.response?.data?.error || 'Connection failed' });
+    } finally {
+      setSmtpTesting(false);
     }
   }
 
@@ -214,6 +262,9 @@ export default function SettingsPage() {
             <>
               <button onClick={() => setTab('users')} className={`sidebar-link w-full ${tab === 'users' ? 'active' : ''}`}>
                 <Shield className="h-4 w-4" /> Users
+              </button>
+              <button onClick={() => setTab('smtp')} className={`sidebar-link w-full ${tab === 'smtp' ? 'active' : ''}`}>
+                <Mail className="h-4 w-4" /> Email (SMTP)
               </button>
               <button onClick={() => setTab('rentvine')} className={`sidebar-link w-full ${tab === 'rentvine' ? 'active' : ''}`}>
                 <Building2 className="h-4 w-4" /> Rentvine API
@@ -388,6 +439,71 @@ export default function SettingsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* SMTP Config */}
+          {tab === 'smtp' && user?.role === 'ADMIN' && (
+            <div className="space-y-4">
+              {smtpConfig && (
+                <div className="card card-body">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">SMTP Configured{smtpConfig.source === 'env' ? ' (via environment)' : ''}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {smtpConfig.host}:{smtpConfig.port} &middot; From: {smtpConfig.fromEmail}
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={testSmtpConnection} className="btn-secondary btn-sm" disabled={smtpTesting}>
+                      {smtpTesting ? 'Testing...' : 'Test Connection'}
+                    </button>
+                  </div>
+                  {smtpTestResult && (
+                    <p className={`mt-3 text-sm ${smtpTestResult.ok ? 'text-green-600' : 'text-red-600'}`}>
+                      {smtpTestResult.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="card">
+                <div className="card-header">
+                  <h3 className="font-semibold dark:text-white">{smtpConfig ? 'Update' : 'Configure'} SMTP Settings</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for sending password reset emails from the login screen</p>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={saveSmtpConfig} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">SMTP Host</label>
+                        <input className="input" value={smtpForm.host} onChange={e => setSmtpForm({...smtpForm, host: e.target.value})} required placeholder="smtp.gmail.com" />
+                      </div>
+                      <div>
+                        <label className="label">Port</label>
+                        <input className="input" type="number" value={smtpForm.port} onChange={e => setSmtpForm({...smtpForm, port: parseInt(e.target.value) || 587})} required />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Username</label>
+                      <input className="input" value={smtpForm.username} onChange={e => setSmtpForm({...smtpForm, username: e.target.value})} required placeholder="your-email@gmail.com" />
+                    </div>
+                    <div>
+                      <label className="label">Password</label>
+                      <input className="input" type="password" value={smtpForm.password} onChange={e => setSmtpForm({...smtpForm, password: e.target.value})} required placeholder="App password or SMTP password" />
+                    </div>
+                    <div>
+                      <label className="label">From Email</label>
+                      <input className="input" type="email" value={smtpForm.fromEmail} onChange={e => setSmtpForm({...smtpForm, fromEmail: e.target.value})} required placeholder="noreply@yourdomain.com" />
+                    </div>
+                    <button type="submit" className="btn-primary" disabled={smtpSaving}>
+                      {smtpSaving ? 'Saving...' : 'Save SMTP Settings'}
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           )}

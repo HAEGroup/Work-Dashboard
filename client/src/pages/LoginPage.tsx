@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
+import { Building2, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import api from '../services/api';
+
+type View = 'login' | 'register' | 'forgot';
 
 export default function LoginPage() {
+  const [view, setView] = useState<View>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showForgotMsg, setShowForgotMsg] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
   const { login, register } = useAuthStore();
   const navigate = useNavigate();
 
@@ -21,18 +24,41 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isRegister) {
+      if (view === 'register') {
         await register({ email, password, firstName, lastName });
+        navigate('/');
       } else {
         await login(email, password);
+        navigate('/');
       }
-      navigate('/');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'An error occurred';
       setError(message);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setForgotSent(true);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'An error occurred';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function switchView(next: View) {
+    setView(next);
+    setError('');
+    setForgotSent(false);
   }
 
   return (
@@ -44,101 +70,153 @@ export default function LoginPage() {
           </div>
           <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Work Dashboard</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {isRegister ? 'Create your account' : 'Sign in to your account'}
+            {view === 'register' ? 'Create your account' : view === 'forgot' ? 'Reset your password' : 'Sign in to your account'}
           </p>
         </div>
 
         <div className="card">
           <div className="card-body">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
-              )}
-
-              {isRegister && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">First Name</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={firstName}
-                      onChange={e => setFirstName(e.target.value)}
-                      required
-                    />
+            {/* ====== FORGOT PASSWORD VIEW ====== */}
+            {view === 'forgot' ? (
+              forgotSent ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-green-50 dark:bg-green-900/30 p-4 text-sm text-green-700 dark:text-green-300">
+                    <p className="font-medium">Check your email</p>
+                    <p className="mt-1">If an account exists with <span className="font-medium">{email}</span>, we've sent a password reset link. Check your inbox and spam folder.</p>
                   </div>
-                  <div>
-                    <label className="label">Last Name</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={lastName}
-                      onChange={e => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="label">Email</label>
-                <input
-                  type="email"
-                  className="input"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="label">Password</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder={isRegister ? 'Min 8 characters' : ''}
-                  required
-                  minLength={isRegister ? 8 : undefined}
-                />
-              </div>
-
-              {!isRegister && (
-                <div className="text-right">
                   <button
-                    type="button"
-                    onClick={() => setShowForgotMsg(!showForgotMsg)}
-                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    onClick={() => switchView('login')}
+                    className="btn-secondary w-full"
                   >
-                    Forgot password?
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Sign In
                   </button>
                 </div>
-              )}
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  {error && (
+                    <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
+                  )}
 
-              {showForgotMsg && !isRegister && (
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-700 dark:text-blue-300">
-                  Please contact your administrator to get a password reset link.
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+
+                  <div>
+                    <label className="label">Email</label>
+                    <input
+                      type="email"
+                      className="input"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <button type="submit" className="btn-primary w-full" disabled={loading}>
+                    {loading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => switchView('login')}
+                    className="btn-ghost w-full"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Sign In
+                  </button>
+                </form>
+              )
+            ) : (
+              /* ====== LOGIN / REGISTER VIEW ====== */
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
+                )}
+
+                {view === 'register' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">First Name</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Last Name</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="label">Email</label>
+                  <input
+                    type="email"
+                    className="input"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
-              )}
 
-              <button type="submit" className="btn-primary w-full" disabled={loading}>
-                {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
-              </button>
-            </form>
+                <div>
+                  <label className="label">Password</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder={view === 'register' ? 'Min 8 characters' : ''}
+                    required
+                    minLength={view === 'register' ? 8 : undefined}
+                  />
+                </div>
+
+                {view === 'login' && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => switchView('forgot')}
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                <button type="submit" className="btn-primary w-full" disabled={loading}>
+                  {loading ? 'Please wait...' : (view === 'register' ? 'Create Account' : 'Sign In')}
+                </button>
+              </form>
+            )}
           </div>
         </div>
 
-        <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => { setIsRegister(!isRegister); setError(''); setShowForgotMsg(false); }}
-            className="font-medium text-primary-600 hover:text-primary-700"
-          >
-            {isRegister ? 'Sign in' : 'Create one'}
-          </button>
-        </p>
+        {view !== 'forgot' && (
+          <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            {view === 'register' ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              onClick={() => switchView(view === 'register' ? 'login' : 'register')}
+              className="font-medium text-primary-600 hover:text-primary-700"
+            >
+              {view === 'register' ? 'Sign in' : 'Create one'}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

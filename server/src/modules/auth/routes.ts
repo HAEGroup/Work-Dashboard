@@ -2,11 +2,34 @@ import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import prisma from '../../config/database';
 import { env } from '../../config/env';
 import { authenticate, authorize } from '../../middleware/auth';
 import { AppError } from '../../middleware/errorHandler';
+
+async function getSmtpTransporter() {
+  // Try database config first, fall back to env vars
+  const dbConfig = await prisma.smtpConfig.findFirst({ where: { isActive: true } });
+
+  const host = dbConfig?.host || env.SMTP_HOST;
+  const port = dbConfig?.port || env.SMTP_PORT;
+  const user = dbConfig?.username || env.SMTP_USER;
+  const pass = dbConfig?.password || env.SMTP_PASS;
+  const from = dbConfig?.fromEmail || env.SMTP_FROM;
+
+  if (!host || !user || !pass) return null;
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+
+  return { transporter, from };
+}
 
 const router = Router();
 
@@ -251,6 +274,137 @@ router.post('/reset-password-with-token', async (req: Request, res: Response) =>
   ]);
 
   res.json({ message: 'Password reset successfully' });
+});
+
+// POST /api/auth/forgot-password (public)
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const schema = z.object({ email: z.string().email() });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) throw new AppError(400, 'Please enter a valid email address');
+
+  // Always return success to prevent email enumeration
+  const successMsg = 'If an account exists with that email, a password reset link has been sent.';
+
+  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  if (!user || !user.isActive) {
+    res.json({ message: successMsg });
+    return;
+  }
+
+  const smtp = await getSmtpTransporter();
+  if (!smtp) {
+    throw new AppError(503, 'Email sending is not configured. Please contact your administrator.');
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, token, expiresAt },
+  });
+
+  const resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
+
+  await smtp.transporter.sendMail({
+    from: smtp.from,
+    to: user.email,
+    subject: 'Password Reset - Work Dashboard',
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1e40af;">Password Reset</h2>
+        <p>Hi ${user.firstName},</p>
+        <p>We received a request to reset your Work Dashboard password. Click the button below to set a new password:</p>
+        <p style="text-align: center; margin: 32px 0;">
+          <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            Reset Password
+          </a>
+        </p>
+        <p style="color: #6b7280; font-size: 14px;">This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+        <p style="color: #9ca3af; font-size: 12px;">Work Dashboard</p>
+      </div>
+    `,
+  });
+
+  res.json({ message: successMsg });
+});
+
+// GET /api/auth/smtp-config (admin only)
+router.get('/smtp-config', authenticate, authorize('ADMIN'), async (_req: Request, res: Response) => {
+  const config = await prisma.smtpConfig.findFirst({ where: { isActive: true } });
+  if (config) {
+    res.json({
+      config: {
+        id: config.id,
+        host: config.host,
+        port: config.port,
+        username: config.username,
+        fromEmail: config.fromEmail,
+        isActive: config.isActive,
+      },
+    });
+  } else {
+    // Return env-based config if set
+    if (env.SMTP_HOST) {
+      res.json({
+        config: {
+          host: env.SMTP_HOST,
+          port: env.SMTP_PORT,
+          username: env.SMTP_USER,
+          fromEmail: env.SMTP_FROM,
+          isActive: true,
+          source: 'env',
+        },
+      });
+    } else {
+      res.json({ config: null });
+    }
+  }
+});
+
+// POST /api/auth/smtp-config (admin only)
+const smtpConfigSchema = z.object({
+  host: z.string().min(1),
+  port: z.number().default(587),
+  username: z.string().min(1),
+  password: z.string().min(1),
+  fromEmail: z.string().email(),
+});
+
+router.post('/smtp-config', authenticate, authorize('ADMIN'), async (req: Request, res: Response) => {
+  const parsed = smtpConfigSchema.safeParse(req.body);
+  if (!parsed.success) throw new AppError(400, 'Invalid SMTP configuration');
+
+  // Deactivate any existing config
+  await prisma.smtpConfig.updateMany({ where: { isActive: true }, data: { isActive: false } });
+
+  const config = await prisma.smtpConfig.create({
+    data: parsed.data,
+  });
+
+  res.json({
+    config: {
+      id: config.id,
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      fromEmail: config.fromEmail,
+      isActive: config.isActive,
+    },
+  });
+});
+
+// POST /api/auth/smtp-config/test (admin only)
+router.post('/smtp-config/test', authenticate, authorize('ADMIN'), async (req: Request, res: Response) => {
+  const smtp = await getSmtpTransporter();
+  if (!smtp) throw new AppError(400, 'SMTP is not configured');
+
+  try {
+    await smtp.transporter.verify();
+    res.json({ message: 'SMTP connection successful' });
+  } catch (err: any) {
+    throw new AppError(400, `SMTP connection failed: ${err.message}`);
+  }
 });
 
 export default router;

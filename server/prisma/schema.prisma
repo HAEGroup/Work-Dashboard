@@ -54,6 +54,21 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model SmtpConfig {
+  id       String @id @default(uuid())
+  host     String
+  port     Int    @default(587)
+  username String
+  password String
+  fromEmail String @map("from_email")
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("smtp_config")
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
