@@ -1,0 +1,31 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # First deploy: clone the repo
+            if [ ! -d ~/Work-Dashboard ]; then
+              git clone https://github.com/${{ github.repository }}.git ~/Work-Dashboard
+              cd ~/Work-Dashboard
+              ./deploy.sh
+            else
+              # Subsequent deploys: pull and rebuild
+              cd ~/Work-Dashboard
+              git pull origin main
+              docker compose build
+              docker compose up -d
+              echo "Deployed $(git log --oneline -1)"
+            fi
