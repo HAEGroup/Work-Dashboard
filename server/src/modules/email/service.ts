@@ -24,7 +24,7 @@ interface SendEmailData {
   isHtml: boolean;
 }
 
-export async function fetchEmails(account: EmailAccountData): Promise<number> {
+export async function fetchEmails(account: EmailAccountData, folder: string = 'INBOX'): Promise<number> {
   const client = new ImapFlow({
     host: account.imapHost,
     port: account.imapPort,
@@ -41,11 +41,10 @@ export async function fetchEmails(account: EmailAccountData): Promise<number> {
   try {
     await client.connect();
 
-    const lock = await client.getMailboxLock('INBOX');
+    const lock = await client.getMailboxLock(folder);
     try {
-      // Get the latest UID we have stored
       const latestMessage = await prisma.emailMessage.findFirst({
-        where: { accountId: account.id, folder: 'INBOX' },
+        where: { accountId: account.id, folder },
         orderBy: { uid: 'desc' },
         select: { uid: true },
       });
@@ -67,13 +66,13 @@ export async function fetchEmails(account: EmailAccountData): Promise<number> {
             accountId_uid_folder: {
               accountId: account.id,
               uid: message.uid,
-              folder: 'INBOX',
+              folder,
             },
           },
           create: {
             accountId: account.id,
             messageId: parsed.messageId || null,
-            folder: 'INBOX',
+            folder,
             fromAddress: parsed.from?.value[0]?.address || 'unknown',
             fromName: parsed.from?.value[0]?.name || null,
             toAddresses: parsed.to

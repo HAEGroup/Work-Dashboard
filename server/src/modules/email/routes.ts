@@ -78,13 +78,46 @@ router.post('/accounts/:id/sync', authenticate, async (req: Request, res: Respon
   });
   if (!account) throw new AppError(404, 'Email account not found');
 
-  const count = await fetchEmails(account);
-  res.json({ message: `Synced ${count} new messages` });
+  const folder = req.body.folder || 'INBOX';
+  const count = await fetchEmails(account, folder);
+  res.json({ message: `Synced ${count} new messages`, count });
 });
 
-// GET /api/email/accounts/:id/messages?folder=...&page=...
+// GET /api/email/accounts/:id/folders
+router.get('/accounts/:id/folders', authenticate, async (req: Request, res: Response) => {
+  const account = await prisma.emailAccount.findFirst({
+    where: { id: req.params.id as string, userId: req.user!.id },
+  });
+  if (!account) throw new AppError(404, 'Email account not found');
+
+  const [folderCounts, unreadCounts, starredCount] = await Promise.all([
+    prisma.emailMessage.groupBy({
+      by: ['folder'],
+      where: { accountId: req.params.id as string },
+      _count: { id: true },
+    }),
+    prisma.emailMessage.groupBy({
+      by: ['folder'],
+      where: { accountId: req.params.id as string, isRead: false },
+      _count: { id: true },
+    }),
+    prisma.emailMessage.count({
+      where: { accountId: req.params.id as string, isStarred: true },
+    }),
+  ]);
+
+  const folders = folderCounts.map(f => ({
+    name: f.folder,
+    total: f._count.id,
+    unread: unreadCounts.find(u => u.folder === f.folder)?._count.id || 0,
+  }));
+
+  res.json({ folders, starredCount });
+});
+
+// GET /api/email/accounts/:id/messages?folder=...&page=...&starred=...
 router.get('/accounts/:id/messages', authenticate, async (req: Request, res: Response) => {
-  const { folder = 'INBOX', page = '1', limit = '50', search } = req.query;
+  const { folder = 'INBOX', page = '1', limit = '50', search, starred } = req.query;
 
   const account = await prisma.emailAccount.findFirst({
     where: { id: req.params.id as string, userId: req.user!.id },
@@ -94,8 +127,13 @@ router.get('/accounts/:id/messages', authenticate, async (req: Request, res: Res
   const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
   const where: Record<string, unknown> = {
     accountId: req.params.id as string,
-    folder: folder as string,
   };
+
+  if (starred === 'true') {
+    where.isStarred = true;
+  } else {
+    where.folder = folder as string;
+  }
 
   if (search) {
     where.OR = [
@@ -105,7 +143,7 @@ router.get('/accounts/:id/messages', authenticate, async (req: Request, res: Res
     ];
   }
 
-  const [messages, total] = await Promise.all([
+  const [messagesRaw, total] = await Promise.all([
     prisma.emailMessage.findMany({
       where,
       select: {
@@ -116,6 +154,7 @@ router.get('/accounts/:id/messages', authenticate, async (req: Request, res: Res
         fromName: true,
         toAddresses: true,
         subject: true,
+        bodyText: true,
         isRead: true,
         isStarred: true,
         hasAttachments: true,
@@ -127,6 +166,11 @@ router.get('/accounts/:id/messages', authenticate, async (req: Request, res: Res
     }),
     prisma.emailMessage.count({ where }),
   ]);
+
+  const messages = messagesRaw.map(({ bodyText, ...rest }) => ({
+    ...rest,
+    bodyPreview: bodyText ? bodyText.substring(0, 200).replace(/[\r\n]+/g, ' ').trim() : null,
+  }));
 
   res.json({ messages, total, page: parseInt(page as string), limit: parseInt(limit as string) });
 });
@@ -178,6 +222,20 @@ router.patch('/messages/:id', authenticate, async (req: Request, res: Response) 
   });
 
   res.json({ message: updated });
+});
+
+// DELETE /api/email/messages/:id
+router.delete('/messages/:id', authenticate, async (req: Request, res: Response) => {
+  const message = await prisma.emailMessage.findUnique({
+    where: { id: req.params.id as string },
+    include: { account: { select: { userId: true } } },
+  });
+  if (!message || message.account.userId !== req.user!.id) {
+    throw new AppError(404, 'Message not found');
+  }
+
+  await prisma.emailMessage.delete({ where: { id: req.params.id as string } });
+  res.json({ message: 'Message deleted' });
 });
 
 // POST /api/email/send

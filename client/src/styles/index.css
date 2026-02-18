@@ -93,6 +93,10 @@
     @apply hover:bg-gray-50;
   }
 
+  .toolbar-btn {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-gray-600 hover:bg-gray-200/70 transition-colors disabled:opacity-40 disabled:pointer-events-none;
+  }
+
   .sidebar-link {
     @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors;
   }

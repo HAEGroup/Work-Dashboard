@@ -46,10 +46,17 @@ export interface EmailMessage {
   subject?: string;
   bodyText?: string;
   bodyHtml?: string;
+  bodyPreview?: string;
   isRead: boolean;
   isStarred: boolean;
   hasAttachments: boolean;
   date: string;
+}
+
+export interface EmailFolder {
+  name: string;
+  total: number;
+  unread: number;
 }
 
 // ============================================================
