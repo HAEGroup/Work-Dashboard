@@ -82,8 +82,8 @@ router.delete('/events/:id', authenticate, async (req: Request, res: Response) =
 // ============================================================
 
 // GET /api/calendar/google/auth-url
-router.get('/google/auth-url', authenticate, (_req: Request, res: Response) => {
-  const url = getGoogleAuthUrl();
+router.get('/google/auth-url', authenticate, (req: Request, res: Response) => {
+  const url = getGoogleAuthUrl(req.user!.id);
   res.json({ url });
 });
 
@@ -105,11 +105,14 @@ router.post('/google/sync', authenticate, async (req: Request, res: Response) =>
 
 // GET /api/calendar/google/status
 router.get('/google/status', authenticate, async (req: Request, res: Response) => {
+  const { env: appEnv } = await import('../../config/env');
+  const configured = !!(appEnv.GOOGLE_CLIENT_ID && appEnv.GOOGLE_CLIENT_SECRET);
+
   const sync = await prisma.googleCalendarSync.findUnique({
     where: { userId: req.user!.id },
     select: { calendarId: true, lastSyncAt: true },
   });
-  res.json({ connected: !!sync, sync });
+  res.json({ configured, connected: !!sync, sync });
 });
 
 export default router;

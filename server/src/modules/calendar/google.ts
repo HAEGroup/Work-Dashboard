@@ -8,12 +8,15 @@ const oauth2Client = new google.auth.OAuth2(
   env.GOOGLE_REDIRECT_URI,
 );
 
-export function getGoogleAuthUrl(): string {
+export function getGoogleAuthUrl(userId: string): string {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google Calendar is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment or Settings.');
+  }
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/calendar'],
     prompt: 'consent',
-    // state will be set to userId by the caller
+    state: userId,
   });
 }
 

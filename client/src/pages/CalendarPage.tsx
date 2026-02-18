@@ -11,7 +11,8 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [googleStatus, setGoogleStatus] = useState<{ connected: boolean } | null>(null);
+  const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean } | null>(null);
+  const [googleError, setGoogleError] = useState('');
 
   const [form, setForm] = useState({
     title: '', description: '', location: '',
@@ -51,11 +52,13 @@ export default function CalendarPage() {
   }
 
   async function connectGoogle() {
+    setGoogleError('');
     try {
       const { data } = await api.get('/calendar/google/auth-url');
       window.location.href = data.url;
-    } catch (err) {
-      console.error('Failed to get auth URL:', err);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to connect to Google Calendar';
+      setGoogleError(msg);
     }
   }
 
@@ -149,22 +152,35 @@ export default function CalendarPage() {
       <PageHeader
         title="Calendar"
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {googleStatus?.connected ? (
               <button onClick={syncGoogle} className="btn-secondary">
                 <RefreshCw className="h-4 w-4 mr-2" /> Sync Google
               </button>
-            ) : (
+            ) : googleStatus?.configured !== false ? (
               <button onClick={connectGoogle} className="btn-secondary">
                 Connect Google Calendar
               </button>
-            )}
+            ) : null}
             <button onClick={() => openForm()} className="btn-primary">
               <Plus className="h-4 w-4 mr-2" /> New Event
             </button>
           </div>
         }
       />
+
+      {googleError && (
+        <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
+          <span>{googleError}</span>
+          <button onClick={() => setGoogleError('')} className="text-red-400 hover:text-red-600"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {googleStatus?.configured === false && (
+        <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-700 dark:text-amber-300">
+          Google Calendar sync is not configured. Set <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">GOOGLE_CLIENT_SECRET</code> in your environment variables to enable it.
+        </div>
+      )}
 
       {/* Event Form Modal */}
       {showForm && (
