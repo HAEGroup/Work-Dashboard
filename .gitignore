@@ -18,8 +18,5 @@ nginx/ssl/*.key
 .vscode/
 .idea/
 
-# Prisma
-server/prisma/migrations/
-
 # Coverage
 coverage/
