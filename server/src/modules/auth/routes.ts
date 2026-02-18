@@ -156,4 +156,52 @@ router.patch('/users/:id', authenticate, authorize('ADMIN'), async (req: Request
   res.json({ user });
 });
 
+// POST /api/auth/users/:id/reset-password (admin only)
+router.post('/users/:id/reset-password', authenticate, authorize('ADMIN'), async (req: Request, res: Response) => {
+  const schema = z.object({ password: z.string().min(8) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new AppError(400, 'Password must be at least 8 characters');
+  }
+
+  const targetUser = await prisma.user.findUnique({ where: { id: req.params.id as string } });
+  if (!targetUser) throw new AppError(404, 'User not found');
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  await prisma.user.update({
+    where: { id: req.params.id as string },
+    data: { passwordHash },
+  });
+
+  res.json({ message: 'Password reset successfully' });
+});
+
+// POST /api/auth/change-password (authenticated user)
+router.post('/change-password', authenticate, async (req: Request, res: Response) => {
+  const schema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new AppError(400, 'New password must be at least 8 characters');
+  }
+
+  const userRecord = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!userRecord) throw new AppError(404, 'User not found');
+
+  const isValid = await bcrypt.compare(parsed.data.currentPassword, userRecord.passwordHash);
+  if (!isValid) {
+    throw new AppError(401, 'Current password is incorrect');
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.user.update({
+    where: { id: req.user!.id },
+    data: { passwordHash },
+  });
+
+  res.json({ message: 'Password changed successfully' });
+});
+
 export default router;

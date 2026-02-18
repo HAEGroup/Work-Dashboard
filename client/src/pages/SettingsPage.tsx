@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Shield, Key, Building2 } from 'lucide-react';
+import { User, Shield, Key, Building2, Plus, X, Lock, Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 import { useAuthStore } from '../store/auth';
 import type { User as UserType } from '../types';
@@ -16,6 +16,30 @@ export default function SettingsPage() {
   // Rentvine form
   const [rvForm, setRvForm] = useState({ apiKey: '', apiSecret: '', baseUrl: 'https://api.rentvine.com' });
   const [rvSaving, setRvSaving] = useState(false);
+
+  // Add user modal
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({ email: '', firstName: '', lastName: '', password: '', role: 'VIEWER' });
+  const [addUserError, setAddUserError] = useState('');
+  const [addUserSaving, setAddUserSaving] = useState(false);
+
+  // Reset password modal
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
+  // Change own password
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
+  const [changePasswordSaving, setChangePasswordSaving] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     if (tab === 'users' && user?.role === 'ADMIN') loadUsers();
@@ -72,6 +96,81 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleAddUser(e: React.FormEvent) {
+    e.preventDefault();
+    setAddUserError('');
+    setAddUserSaving(true);
+    try {
+      await api.post('/auth/register', addUserForm);
+      setShowAddUser(false);
+      setAddUserForm({ email: '', firstName: '', lastName: '', password: '', role: 'VIEWER' });
+      loadUsers();
+    } catch (err: any) {
+      setAddUserError(err.response?.data?.message || 'Failed to create user');
+    } finally {
+      setAddUserSaving(false);
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetPasswordUserId) return;
+    setResetPasswordError('');
+    setResetPasswordSaving(true);
+    try {
+      await api.post(`/auth/users/${resetPasswordUserId}/reset-password`, { password: resetPasswordValue });
+      setResetPasswordSuccess(true);
+      setTimeout(() => {
+        setResetPasswordUserId(null);
+        setResetPasswordValue('');
+        setResetPasswordSuccess(false);
+        setShowResetPassword(false);
+      }, 1500);
+    } catch (err: any) {
+      setResetPasswordError(err.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setResetPasswordSaving(false);
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError('New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setChangePasswordError('New password must be at least 8 characters');
+      return;
+    }
+
+    setChangePasswordSaving(true);
+    try {
+      await api.post('/auth/change-password', { currentPassword, newPassword });
+      setChangePasswordSuccess('Password changed successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setChangePasswordError(err.response?.data?.message || 'Failed to change password');
+    } finally {
+      setChangePasswordSaving(false);
+    }
+  }
+
+  function openResetPassword(userId: string) {
+    setResetPasswordUserId(userId);
+    setResetPasswordValue('');
+    setResetPasswordError('');
+    setResetPasswordSuccess(false);
+    setShowResetPassword(true);
+  }
+
+  const resetUser = users.find(u => u.id === resetPasswordUserId);
+
   return (
     <div>
       <PageHeader title="Settings" />
@@ -98,26 +197,97 @@ export default function SettingsPage() {
         <div className="flex-1 max-w-2xl">
           {/* Profile */}
           {tab === 'profile' && (
-            <div className="card">
-              <div className="card-header"><h3 className="font-semibold">Profile</h3></div>
-              <div className="card-body space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">First Name</label>
-                    <p className="text-sm text-gray-900">{user?.firstName}</p>
+            <div className="space-y-6">
+              <div className="card">
+                <div className="card-header"><h3 className="font-semibold">Profile</h3></div>
+                <div className="card-body space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">First Name</label>
+                      <p className="text-sm text-gray-900">{user?.firstName}</p>
+                    </div>
+                    <div>
+                      <label className="label">Last Name</label>
+                      <p className="text-sm text-gray-900">{user?.lastName}</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="label">Last Name</label>
-                    <p className="text-sm text-gray-900">{user?.lastName}</p>
+                    <label className="label">Email</label>
+                    <p className="text-sm text-gray-900">{user?.email}</p>
+                  </div>
+                  <div>
+                    <label className="label">Role</label>
+                    <p className="text-sm text-gray-900">{user?.role}</p>
                   </div>
                 </div>
-                <div>
-                  <label className="label">Email</label>
-                  <p className="text-sm text-gray-900">{user?.email}</p>
-                </div>
-                <div>
-                  <label className="label">Role</label>
-                  <p className="text-sm text-gray-900">{user?.role}</p>
+              </div>
+
+              {/* Change Password */}
+              <div className="card">
+                <div className="card-header"><h3 className="font-semibold">Change Password</h3></div>
+                <div className="card-body">
+                  <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+                    <div>
+                      <label className="label">Current Password</label>
+                      <div className="relative">
+                        <input
+                          className="input pr-10"
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          value={currentPassword}
+                          onChange={e => setCurrentPassword(e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">New Password</label>
+                      <div className="relative">
+                        <input
+                          className="input pr-10"
+                          type={showNewPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          required
+                          minLength={8}
+                          placeholder="Minimum 8 characters"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Confirm New Password</label>
+                      <input
+                        className="input"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    {changePasswordError && (
+                      <p className="text-sm text-red-600">{changePasswordError}</p>
+                    )}
+                    {changePasswordSuccess && (
+                      <p className="text-sm text-green-600">{changePasswordSuccess}</p>
+                    )}
+                    <button type="submit" className="btn-primary" disabled={changePasswordSaving}>
+                      <Lock className="h-4 w-4 mr-2" />
+                      {changePasswordSaving ? 'Changing...' : 'Change Password'}
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -126,7 +296,12 @@ export default function SettingsPage() {
           {/* Users */}
           {tab === 'users' && user?.role === 'ADMIN' && (
             <div className="card">
-              <div className="card-header"><h3 className="font-semibold">Team Members</h3></div>
+              <div className="card-header flex items-center justify-between">
+                <h3 className="font-semibold">Team Members</h3>
+                <button onClick={() => setShowAddUser(true)} className="btn-primary btn-sm">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Add User
+                </button>
+              </div>
               <div className="overflow-x-auto">
                 <table className="table w-full">
                   <thead>
@@ -155,14 +330,23 @@ export default function SettingsPage() {
                           </span>
                         </td>
                         <td>
-                          {u.id !== user.id && (
+                          <div className="flex items-center gap-1">
                             <button
-                              onClick={() => toggleUserActive(u.id, u.isActive!)}
+                              onClick={() => openResetPassword(u.id)}
                               className="btn-ghost btn-sm"
+                              title="Reset password"
                             >
-                              {u.isActive ? 'Disable' : 'Enable'}
+                              <Key className="h-3.5 w-3.5" />
                             </button>
-                          )}
+                            {u.id !== user.id && (
+                              <button
+                                onClick={() => toggleUserActive(u.id, u.isActive!)}
+                                className="btn-ghost btn-sm"
+                              >
+                                {u.isActive ? 'Disable' : 'Enable'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -218,6 +402,133 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* ====== ADD USER MODAL ====== */}
+      {showAddUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold">Add User</h2>
+              <button onClick={() => setShowAddUser(false)} className="p-1 rounded-lg hover:bg-gray-100">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <form onSubmit={handleAddUser} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">First Name</label>
+                  <input
+                    className="input"
+                    value={addUserForm.firstName}
+                    onChange={e => setAddUserForm({...addUserForm, firstName: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">Last Name</label>
+                  <input
+                    className="input"
+                    value={addUserForm.lastName}
+                    onChange={e => setAddUserForm({...addUserForm, lastName: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label">Email</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={addUserForm.email}
+                  onChange={e => setAddUserForm({...addUserForm, email: e.target.value})}
+                  required
+                  placeholder="user@company.com"
+                />
+              </div>
+              <div>
+                <label className="label">Temporary Password</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={addUserForm.password}
+                  onChange={e => setAddUserForm({...addUserForm, password: e.target.value})}
+                  required
+                  minLength={8}
+                  placeholder="Minimum 8 characters"
+                />
+                <p className="text-xs text-gray-500 mt-1">Share this with the user so they can sign in</p>
+              </div>
+              <div>
+                <label className="label">Role</label>
+                <select
+                  className="input"
+                  value={addUserForm.role}
+                  onChange={e => setAddUserForm({...addUserForm, role: e.target.value})}
+                >
+                  <option value="VIEWER">Viewer</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+              {addUserError && (
+                <p className="text-sm text-red-600">{addUserError}</p>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="btn-primary flex-1" disabled={addUserSaving}>
+                  {addUserSaving ? 'Creating...' : 'Create User'}
+                </button>
+                <button type="button" onClick={() => setShowAddUser(false)} className="btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ====== RESET PASSWORD MODAL ====== */}
+      {showResetPassword && resetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold">Reset Password</h2>
+              <button onClick={() => { setShowResetPassword(false); setResetPasswordUserId(null); }} className="p-1 rounded-lg hover:bg-gray-100">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <form onSubmit={handleResetPassword} className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Set a new password for <span className="font-medium text-gray-900">{resetUser.firstName} {resetUser.lastName}</span> ({resetUser.email})
+              </p>
+              <div>
+                <label className="label">New Password</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={resetPasswordValue}
+                  onChange={e => setResetPasswordValue(e.target.value)}
+                  required
+                  minLength={8}
+                  placeholder="Minimum 8 characters"
+                />
+              </div>
+              {resetPasswordError && (
+                <p className="text-sm text-red-600">{resetPasswordError}</p>
+              )}
+              {resetPasswordSuccess && (
+                <p className="text-sm text-green-600">Password reset successfully</p>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="btn-primary flex-1" disabled={resetPasswordSaving || resetPasswordSuccess}>
+                  <Lock className="h-4 w-4 mr-2" />
+                  {resetPasswordSaving ? 'Resetting...' : 'Reset Password'}
+                </button>
+                <button type="button" onClick={() => { setShowResetPassword(false); setResetPasswordUserId(null); }} className="btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
