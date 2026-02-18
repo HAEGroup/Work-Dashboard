@@ -17,5 +17,5 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3001
 
-# Push schema and seed if needed, then start server
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
+# Push schema, seed default data, then start server
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx prisma db seed && node dist/index.js"]
