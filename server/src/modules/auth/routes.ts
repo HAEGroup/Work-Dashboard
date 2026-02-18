@@ -282,6 +282,12 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) throw new AppError(400, 'Please enter a valid email address');
 
+  const smtp = await getSmtpTransporter();
+  if (!smtp) {
+    res.json({ message: 'smtpNotConfigured' });
+    return;
+  }
+
   // Always return success to prevent email enumeration
   const successMsg = 'If an account exists with that email, a password reset link has been sent.';
 
@@ -289,11 +295,6 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   if (!user || !user.isActive) {
     res.json({ message: successMsg });
     return;
-  }
-
-  const smtp = await getSmtpTransporter();
-  if (!smtp) {
-    throw new AppError(503, 'Email sending is not configured. Please contact your administrator.');
   }
 
   const token = crypto.randomBytes(32).toString('hex');

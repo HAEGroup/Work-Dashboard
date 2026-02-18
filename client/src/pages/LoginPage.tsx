@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, ArrowLeft } from 'lucide-react';
+import { Building2, ArrowLeft, Info } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import api from '../services/api';
 
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [smtpMissing, setSmtpMissing] = useState(false);
   const { login, register } = useAuthStore();
   const navigate = useNavigate();
 
@@ -42,11 +43,16 @@ export default function LoginPage() {
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setSmtpMissing(false);
     setLoading(true);
 
     try {
-      await api.post('/auth/forgot-password', { email });
-      setForgotSent(true);
+      const { data } = await api.post('/auth/forgot-password', { email });
+      if (data.message === 'smtpNotConfigured') {
+        setSmtpMissing(true);
+      } else {
+        setForgotSent(true);
+      }
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'An error occurred';
       setError(message);
@@ -59,6 +65,7 @@ export default function LoginPage() {
     setView(next);
     setError('');
     setForgotSent(false);
+    setSmtpMissing(false);
   }
 
   return (
@@ -98,9 +105,22 @@ export default function LoginPage() {
                     <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
                   )}
 
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Enter your email address and we'll send you a link to reset your password.
-                  </p>
+                  {smtpMissing && (
+                    <div className="rounded-lg bg-amber-50 dark:bg-amber-900/30 p-4 text-sm text-amber-700 dark:text-amber-300">
+                      <p className="font-medium">Email not configured</p>
+                      <p className="mt-1">Password reset emails are not set up yet. Please contact your administrator to reset your password, or sign in with the default account:</p>
+                      <p className="mt-2 font-mono text-xs bg-amber-100 dark:bg-amber-900/50 rounded p-2">
+                        Email: admin@example.com<br />
+                        Password: admin123
+                      </p>
+                    </div>
+                  )}
+
+                  {!smtpMissing && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Enter your email address and we'll send you a link to reset your password.
+                    </p>
+                  )}
 
                   <div>
                     <label className="label">Email</label>
@@ -115,9 +135,11 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <button type="submit" className="btn-primary w-full" disabled={loading}>
-                    {loading ? 'Sending...' : 'Send Reset Link'}
-                  </button>
+                  {!smtpMissing && (
+                    <button type="submit" className="btn-primary w-full" disabled={loading}>
+                      {loading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -133,7 +155,12 @@ export default function LoginPage() {
               /* ====== LOGIN / REGISTER VIEW ====== */
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>
+                  <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">
+                    {error}
+                    {error === 'Authentication required' && (
+                      <p className="mt-2 text-xs">Only admins can create new accounts. Sign in with an admin account first, or use the default credentials if this is a fresh install.</p>
+                    )}
+                  </div>
                 )}
 
                 {view === 'register' && (
