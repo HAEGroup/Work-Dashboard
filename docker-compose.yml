@@ -34,6 +34,11 @@ services:
       RENTVINE_API_KEY: ${RENTVINE_API_KEY:-}
       RENTVINE_API_SECRET: ${RENTVINE_API_SECRET:-}
       RENTVINE_BASE_URL: ${RENTVINE_BASE_URL:-https://api.rentvine.com}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       CLIENT_URL: ${CLIENT_URL:-http://localhost}
     ports:
       - "3001:3001"
