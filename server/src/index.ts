@@ -15,6 +15,7 @@ import taskRoutes from './modules/tasks/routes';
 import rentvineRoutes from './modules/rentvine/routes';
 import dashboardRoutes from './modules/dashboard/routes';
 import crmRoutes from './modules/crm/routes';
+import chatRoutes from './modules/chat/routes';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/rentvine', rentvineRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/crm', crmRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

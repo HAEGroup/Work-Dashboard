@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   Kanban,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth';
 import { useThemeStore } from '../../store/theme';
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/email', icon: Mail, label: 'Email' },
   { to: '/calendar', icon: Calendar, label: 'Calendar' },
   { to: '/crm', icon: Kanban, label: 'CRM' },
+  { to: '/chat', icon: MessageCircle, label: 'Chat' },
   { to: '/accounting', icon: BookOpen, label: 'Accounting' },
   { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { to: '/properties', icon: Building2, label: 'Properties' },
