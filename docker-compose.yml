@@ -40,8 +40,8 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       CLIENT_URL: ${CLIENT_URL:-http://localhost}
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
 
   client:
     build:
