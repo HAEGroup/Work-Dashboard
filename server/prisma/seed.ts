@@ -113,6 +113,20 @@ async function main() {
 
   console.log('Created Personal Financial Statement project');
 
+  // Create Investment Tracker project
+  await prisma.project.upsert({
+    where: { id: 'investment-tracker' },
+    update: {},
+    create: {
+      id: 'investment-tracker',
+      name: 'Investment Tracker',
+      description: 'Track and manage investment portfolio and activities',
+      color: '#F59E0B',
+    },
+  });
+
+  console.log('Created Investment Tracker project');
+
   // Create default CRM boards
   const existingBoards = await prisma.crmBoard.count();
   if (existingBoards === 0) {
