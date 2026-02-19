@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User / Auth ────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  statements Statement[]
+
+  @@map("users")
+}
+
+// ─── Financial Statement (snapshot in time) ─────────────────
+
+model Statement {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String   @default("Personal Financial Statement")
+  asOfDate  DateTime @map("as_of_date")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  assets      Asset[]
+  liabilities Liability[]
+
+  // Personal info stored on the statement
+  fullName       String?  @map("full_name")
+  address        String?
+  city           String?
+  state          String?
+  zip            String?
+  phone          String?
+  employer       String?
+  jobTitle       String?  @map("job_title")
+  annualSalary   Decimal? @map("annual_salary") @db.Decimal(14, 2)
+  otherIncome    Decimal? @map("other_income") @db.Decimal(14, 2)
+  otherIncomeDesc String? @map("other_income_desc")
+
+  @@index([userId, asOfDate])
+  @@map("statements")
+}
+
+// ─── Assets ─────────────────────────────────────────────────
+
+enum AssetCategory {
+  CASH_AND_EQUIVALENTS
+  INVESTMENTS
+  RETIREMENT_ACCOUNTS
+  REAL_ESTATE
+  VEHICLES
+  BUSINESS_INTERESTS
+  PERSONAL_PROPERTY
+  LIFE_INSURANCE_CSV
+  OTHER
+}
+
+model Asset {
+  id          String        @id @default(uuid())
+  statementId String        @map("statement_id")
+  category    AssetCategory
+  description String
+  value       Decimal       @db.Decimal(14, 2)
+  sortOrder   Int           @default(0) @map("sort_order")
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId, category])
+  @@map("assets")
+}
+
+// ─── Liabilities ────────────────────────────────────────────
+
+enum LiabilityCategory {
+  MORTGAGE
+  HOME_EQUITY_LOAN
+  AUTO_LOAN
+  STUDENT_LOAN
+  CREDIT_CARD
+  BUSINESS_LOAN
+  PERSONAL_LOAN
+  TAX_LIABILITY
+  OTHER
+}
+
+model Liability {
+  id              String            @id @default(uuid())
+  statementId     String            @map("statement_id")
+  category        LiabilityCategory
+  description     String
+  balance         Decimal           @db.Decimal(14, 2)
+  monthlyPayment  Decimal?          @map("monthly_payment") @db.Decimal(14, 2)
+  interestRate    Decimal?          @map("interest_rate") @db.Decimal(5, 3)
+  creditor        String?
+  maturityDate    DateTime?         @map("maturity_date")
+  sortOrder       Int               @default(0) @map("sort_order")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId, category])
+  @@map("liabilities")
+}
