@@ -141,6 +141,20 @@ async function main() {
 
   console.log('Created Personal Financial Tracker project');
 
+  // Create Personal Financial Statement (2) project
+  await prisma.project.upsert({
+    where: { id: 'personal-financial-statement-2' },
+    update: {},
+    create: {
+      id: 'personal-financial-statement-2',
+      name: 'Personal Financial Statement',
+      description: 'Track and manage personal financial statements and reporting',
+      color: '#10B981',
+    },
+  });
+
+  console.log('Created Personal Financial Statement (2) project');
+
   // Create default CRM boards
   const existingBoards = await prisma.crmBoard.count();
   if (existingBoards === 0) {
