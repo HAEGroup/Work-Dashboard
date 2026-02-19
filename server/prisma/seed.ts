@@ -134,7 +134,6 @@ async function main() {
     create: {
       id: 'personal-financial-tracker',
       name: 'Personal Financial Tracker',
-      description: 'Track personal finances, budgets, and spending habits',
       color: '#10B981',
     },
   });
